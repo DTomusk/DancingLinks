@@ -1,0 +1,7 @@
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\bin\Debug\DancingLinks.exe.config
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\bin\Debug\DancingLinks.exe
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\bin\Debug\DancingLinks.pdb
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\obj\Debug\DancingLinks.csproj.AssemblyReference.cache
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\obj\Debug\DancingLinks.csproj.CoreCompileInputs.cache
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\obj\Debug\DancingLinks.exe
+E:\ProgrammingBusiness\CSharp\projects\DancingLinks\DancingLinks\obj\Debug\DancingLinks.pdb
