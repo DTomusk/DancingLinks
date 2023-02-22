@@ -16,6 +16,8 @@ namespace DancingLinks
 
 		public Node West { get; set; }
 
+		public Node Header { get; set; }
+
 		public string Label { get; set; }
 
 		public int Children { get; set; }

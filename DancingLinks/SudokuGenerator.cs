@@ -10,19 +10,18 @@ namespace DancingLinks
 		const string BLOCK_CONTAINS_NUMBER = "BlockContainsNumber";
 		// Currently not used fully as FindBlockFromCoordinates behaves independently of SUDOKU_DIMENSION
 		const int SUDOKU_DIMENSION = 9;
-		const bool TESTING_ENABLED = true;
 		const int EXPECTED_NUMBER_OF_CONSTRAINTS = 324;
 		// Currently not used, hard to verify whether there are 729 distinct rows in the data structure 
 		const int EXPECTED_NUMBER_OF_CHOICES = 729;
 		const int EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER = 9;
 		const int EXPECTED_NUMBER_OF_NODES_PER_ROW = 4;
 
-		public Node GenerateSudokuConstraints()
+		public Node GenerateSudokuConstraints(bool testing)
 		{
 			Node root = createRoot();
 			addColumns(root);
 			addPossibleMoves(root);
-			if (TESTING_ENABLED)
+			if (testing)
 			{
 				verifyNodeStructure(root);
 				Console.WriteLine("All tests passed, data structure has been verified");
@@ -64,6 +63,7 @@ namespace DancingLinks
 						West = currentNode
 					};
 					currentNode = currentNode.East;
+					currentNode.Header = currentNode;
 				}
 			}
 
@@ -83,11 +83,11 @@ namespace DancingLinks
 					// Iterate over the columns
 					for (int j = 1; j <= SUDOKU_DIMENSION; j++)
 					{
+						// Each move fulfils four contraints
 						Node firstNode = new Node($"Value: {val} at ({i}, {j})");
-						currentNode = firstNode;
 						headerNode = root.East;
 
-						currentNode = appendChildNode(headerNode, currentNode, SQUARE_HAS_VALUE, i, j);
+						currentNode = appendChildNode(headerNode, firstNode, SQUARE_HAS_VALUE, i, j);
 						currentNode = appendChildNode(headerNode, currentNode, ROW_CONTAINS_NUMBER, i, val);
 						currentNode = appendChildNode(headerNode, currentNode, COLUMN_CONTAINS_NUMBER, j, val);
 						currentNode = appendChildNode(headerNode, currentNode, BLOCK_CONTAINS_NUMBER, FindBlockFromCoordinates(i, j), val);
@@ -135,6 +135,7 @@ namespace DancingLinks
 
 			appendNode.East = new Node(appendNode.Label);
 			appendNode.East.West = appendNode;
+			appendNode.Header = headerNode;
 
 			headerNode.Children += 1;
 
@@ -170,7 +171,7 @@ namespace DancingLinks
 					throw new Exception($"The west of {currentNode.Label}'s east ({currentNode.East.Label} was {currentNode.East.West.Label})");
 				if (currentNode.Children != EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER)
 					throw new Exception($"Header with label {currentNode.Label} has {currentNode.Children} children rather than the expected {EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER}");
-				// To do: run tests on the header's children 
+
 				runTestsOnHeaderChildren(currentNode);
 
 				currentNode = currentNode.East;
@@ -203,6 +204,9 @@ namespace DancingLinks
 
 				currentNode = currentNode.South;
 				numberOfOffspring += 1;
+
+				if (currentNode.Header != header)
+					throw new Exception($"Header of node with label {currentNode.Label} was not the expected {header.Label}, it was {currentNode.Header.Label}");
 			}
 
 			if (numberOfOffspring != EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER)
