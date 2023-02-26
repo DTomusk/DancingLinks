@@ -4,7 +4,7 @@ namespace DancingLinks
 {
 	public class Program
 	{
-		const bool TESTING = true;
+		const bool TESTING = false;
 		const bool VERBOSE = false;
 
 		static void Main(string[] args)

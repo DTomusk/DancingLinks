@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace DancingLinks
 {
@@ -7,14 +8,19 @@ namespace DancingLinks
 		private Node root;
 		private Node[] solutionSet;
 		private int[,] solvedSudoku;
+		private readonly Stopwatch timer = new Stopwatch();
+		private bool solved;
 
 		public void SolveSudoku(Node matrixRoot)
 		{
 			solutionSet = new Node[81];
 			solvedSudoku = new int[9, 9];
 			root = matrixRoot;
+			solved = false;
 
 			Console.WriteLine("Searching for sudoku solution");
+
+			timer.Start();
 
 			findNextSolutionNode(0);
 		}
@@ -24,12 +30,15 @@ namespace DancingLinks
 		/// </summary>
 		/// <param name="k"></param>
 		private void findNextSolutionNode(int k)
-		{ 
+		{
 			// If there are no more columns left in the matrix, then a solution has been found
 			if (root.East == root)
             {
 				printSolution();
-				Console.ReadLine();
+
+				timer.Stop();
+
+				Console.WriteLine($"Time taken to solve sudoku: {timer.ElapsedMilliseconds} ms");
 				return;
             }
 			
@@ -100,9 +109,7 @@ namespace DancingLinks
 		/// The reverse of the coverColumn method 
 		/// Working in reverse order to coverColumn (north and west rather than south and east),
 		/// this connects a column and all of the associated rows to their original place in the matrix
-		/// Care needs to be taken to ensure this is done in the correct order 
 		/// </summary>
-		/// <param name="header"></param>
 		private void uncoverColumn(Node header)
 		{
 			Node currentNode = header.North;
