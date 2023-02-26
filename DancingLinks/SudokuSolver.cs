@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace DancingLinks
 {
@@ -31,11 +29,12 @@ namespace DancingLinks
 			if (root.East == root)
             {
 				printSolution();
+				Console.ReadLine();
 				return;
             }
 			
 			// Covering the column with the least children reduces the branching factor of the algorithm
-			Node header = findColumnWithLeastChildren(root);
+			Node header = findColumnWithLeastChildren();
 			coverColumn(header);
 
 			Node currentNode = header.South;
@@ -123,8 +122,7 @@ namespace DancingLinks
 			header.West.East = header;
 		}
 
-		// Return the column header with the least number of children 
-		private Node findColumnWithLeastChildren(Node root)
+		private Node findColumnWithLeastChildren()
 		{
 			Node searchNode = root.East;
 			Node minNode = searchNode;
@@ -145,7 +143,7 @@ namespace DancingLinks
 		}
 
 		/// <summary>
-		/// 
+		/// Populates solvedSudoku with values based on the labels of the nodes in the solutionSet and then prints them
 		/// </summary>
 		/// <param name="solution"></param>
 		private void printSolution()
@@ -155,16 +153,8 @@ namespace DancingLinks
 				if (solutionSet[i] != null)
                 {
 					Node printNode = solutionSet[i];
-					int[] valueInSpace = new int[3];
-					valueInSpace = setValueFromSolution(printNode.Header.Label, valueInSpace);
 
-					do
-					{
-						printNode = printNode.East;
-						valueInSpace = setValueFromSolution(printNode.Header.Label, valueInSpace);
-					} while (printNode != solutionSet[i]);
-
-					solvedSudoku[valueInSpace[0] - 1, valueInSpace[1] - 1] = valueInSpace[2];
+					solvedSudoku[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
                 }
             }
 
@@ -179,32 +169,5 @@ namespace DancingLinks
 
 			Console.WriteLine("Solution has been printed");
 		}
-
-		// Crude method for extracting values from the header labels 
-		// TODO: make this better, perhaps make the header labels more robust, something other than just strings
-		private int[] setValueFromSolution(string headerLabel, int[] valueInSpace)
-        {
-			char[] integers = "123456789".ToCharArray();
-			int indexOfX;
-			int indexOfY;
-			int indexOfVal;
-
-			if (headerLabel.Contains("SquareContainsValue"))
-			{
-				indexOfY = headerLabel.IndexOfAny(integers);
-				indexOfX = headerLabel.IndexOfAny(integers, indexOfY + 1);
-				valueInSpace[0] = (int)char.GetNumericValue(headerLabel[indexOfY]);
-				valueInSpace[1] = (int)char.GetNumericValue(headerLabel[indexOfX]);
-			} 
-			else if (headerLabel.Contains("RowContainsNumber"))
-            {
-				indexOfY = headerLabel.IndexOfAny(integers);
-				indexOfVal = headerLabel.IndexOfAny(integers, indexOfY + 1);
-				valueInSpace[0] = (int)char.GetNumericValue(headerLabel[indexOfY]);
-				valueInSpace[2] = (int)char.GetNumericValue(headerLabel[indexOfVal]);
-			}
-
-			return valueInSpace;
-        }
 	}
 }
