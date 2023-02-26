@@ -6,90 +6,76 @@ namespace DancingLinks
 {
 	public class SudokuSolver
 	{
-		public void SolveSudoku(Node root, bool testing)
+		private Node root;
+		private Node[] solutionSet;
+		private int[,] solvedSudoku;
+
+		public void SolveSudoku(Node matrixRoot)
 		{
-			SolutionSet solution = new SolutionSet();
+			solutionSet = new Node[81];
+			solvedSudoku = new int[9, 9];
+			root = matrixRoot;
 
-			// If the program is not in test mode then run the normal algorithm
-			if (!testing)
-			{
-				while (root.East != root)
-				{
-					// Choose the column with the minimum number of children 
-					Node minHeader = findColumnWithLeastChildren(root, testing);
-					if (minHeader.Children == 0)
-					{
-						// backtrack
-						Console.WriteLine("No more possible moves, need to backtrack");
-					}
-					else
-					{
-						// choose a row to add to the solution set 
-						// for each node in the solution set, cover the column 
-						// first: add row to the solution set 
-						// second: connect the parents of each node to their children and update headers accordingly 
-						// third: for each header: connect their siblings then go to all of their childrens' siblings and rewire their parents and children, updating headers as necessary 
-						// cover columns and continue
+			Console.WriteLine("Searching for sudoku solution");
 
-						// As a prototype, let the user choose which moves to do and see what happens 
-						Console.WriteLine("Enter move as a three digit number");
-						string move = Console.ReadLine();
-						Node nodeToAdd = findNodeForMove(move, root);
-
-						solution.Push(nodeToAdd);
-
-						coverAllColumnsInRow(nodeToAdd);
-
-						solution.PrintSolutionSet();
-					}
-				}
-				Console.WriteLine("Sudoku has been solved");
-			}
-			// Otherwise test a certain set of operations
-			else
-			{
-				Console.WriteLine("Testing solver");
-				runTests(root);
-			}
+			findNextSolutionNode(0);
 		}
 
-		// Return the column header with the least number of children 
-		private Node findColumnWithLeastChildren(Node root, bool testing)
-		{
-			Node searchNode = root.East;
-			int minChildren = searchNode.Children;
+		/// <summary>
+		/// Recursive function that finds the kth row in the solution set 
+		/// </summary>
+		/// <param name="k"></param>
+		private void findNextSolutionNode(int k)
+		{ 
+			// If there are no more columns left in the matrix, then a solution has been found
+			if (root.East == root)
+            {
+				printSolution();
+				return;
+            }
+			
+			// Covering the column with the least children reduces the branching factor of the algorithm
+			Node header = findColumnWithLeastChildren(root);
+			coverColumn(header);
 
-			// Find the column with the lowest number of members
-			while (searchNode != root)
-			{
-				if (searchNode.Children < minChildren)
-					minChildren = searchNode.Children;
-				searchNode = searchNode.East;
-			}
+			Node currentNode = header.South;
 
-			searchNode = root.East;
+			// Loop over all offspring of the column header
+			while (currentNode != header)
+            {
+				// Assume the chosen node is in the solution
+				solutionSet[k] = currentNode;
+				Node nodeInRow = currentNode.East;
+				while (nodeInRow != currentNode)
+                {
+					coverColumn(nodeInRow.Header);
+					nodeInRow = nodeInRow.East;
+                }
+				findNextSolutionNode(k + 1);
+				currentNode = solutionSet[k];
+				header = currentNode.Header;
+				
+				nodeInRow = currentNode.West;
+				while (nodeInRow != currentNode)
+                {
+					uncoverColumn(nodeInRow.Header);
+					nodeInRow = nodeInRow.West;
+                }
+            }
 
-			while (searchNode.Children != minChildren)
-				searchNode = searchNode.East;
-
-			if (testing)
-				Console.WriteLine($"Header with least children was {searchNode.Label} with {searchNode.Children} children");
-
-			return searchNode;
+			// If all of the nodes in the column have been iterated over and a solution hasn't been found
+			// Then uncover the column and keep searching 
+			uncoverColumn(header);
+			return;
 		}
 
-		private void removeNode(Node node)
-		{
-			node.North.South = node.South;
-			node.South.North = node.North;
-			node.Header.Children--;
-		}
-
-		// Remove the header from the header row 
-		// Connect all the childrens' siblings' parents to their children 
+		/// <summary>
+		/// Disconnects the given header from the matrix by connecting its east and west nodes to each other
+		/// For any nodes in the column, all of their sibling nodes are disconnected from their columns
+		/// This effectively removes all the populated rows in the column from the matrix 
+		/// </summary>
 		private void coverColumn(Node header)
 		{
-			Console.WriteLine($"Covering column with header {header.Label}");
 			header.West.East = header.East;
 			header.East.West = header.West;
 
@@ -102,129 +88,123 @@ namespace DancingLinks
 				Node currentSibling = currentChild.East;
 				while (currentSibling != currentChild)
 				{
-					removeNode(currentSibling);
+					currentSibling.North.South = currentSibling.South;
+					currentSibling.South.North = currentSibling.North;
+					currentSibling.Header.Children--;
 					currentSibling = currentSibling.East;
 				}
 				currentChild = currentChild.South;
 			} 
 		}
 
-		// Take the node added to the solution and for it and each of its siblings cover the column 
-		private void coverAllColumnsInRow(Node node)
+		/// <summary>
+		/// The reverse of the coverColumn method 
+		/// Working in reverse order to coverColumn (north and west rather than south and east),
+		/// this connects a column and all of the associated rows to their original place in the matrix
+		/// Care needs to be taken to ensure this is done in the correct order 
+		/// </summary>
+		/// <param name="header"></param>
+		private void uncoverColumn(Node header)
 		{
-			Node currentNode = node;
-			do
-			{
-				coverColumn(currentNode.Header);
-				currentNode = currentNode.East;
-			} while (currentNode != node);
+			Node currentNode = header.North;
+			while (currentNode != header)
+            {
+				Node currentSibling = currentNode.West;
+				while (currentSibling != currentNode)
+                {
+					currentSibling.Header.Children++;
+					currentSibling.South.North = currentSibling;
+					currentSibling.North.South = currentSibling;
+					currentSibling = currentSibling.West;
+                }
+				currentNode = currentNode.North;
+            }
+			header.East.West = header;
+			header.West.East = header;
 		}
 
-		#region UI
-		private Node findNodeForMove(string move, Node root)
+		// Return the column header with the least number of children 
+		private Node findColumnWithLeastChildren(Node root)
 		{
-			// Break the input string down into digits
-			// Assume the input consists of 3 digits 
-			List<int> numbers = move.Select(digit => int.Parse(digit.ToString())).ToList();
+			Node searchNode = root.East;
+			Node minNode = searchNode;
+			int minChildren = searchNode.Children;
 
-			Console.WriteLine($"Trying to add the value {numbers[2]} to ({numbers[0]}, {numbers[1]})");
-
-			Node header = root;
-
-			while (header.Label != $"SquareContainsValue ({numbers[0]}, {numbers[1]})")
-            {
-				header = header.East;
-				if (header == root)
-					throw new Exception($"No column found satisfying constraint {move}");
-            }
-
-			Node searchNode = header.South;
-
-			while (searchNode.Label != $"Value: {numbers[2]} at ({numbers[0]}, {numbers[1]})")
-            {
-				searchNode = searchNode.South;
-				if (searchNode == header)
-					throw new Exception($"No node found corresponding to move");
-            }
-
-			Console.WriteLine("Found node corresponding to move");
-
-			return searchNode;
-		}
-        #endregion
-
-        #region Testing Functions 
-        private void runTests(Node root)
-		{
-			// need to come up with a comprehensive set of tests 
-			// test that find column with least children works 
-			Node header = findColumnWithLeastChildren(root, true);
-			if (header.Children != 9)
-				throw new Exception($"All headers at the start should have 9 children, header {header.Label} had {header.Children}");
-
-			coverColumn(header);
-
-			header = root.East;
-			while (header != root)
+			// Find the column with the lowest number of offspring
+			while (searchNode != root)
 			{
-				if (header.Children == 8)
-					Console.WriteLine($"Header with label {header.Label} has 8 children");
-				header = header.East;
+				if (searchNode.Children < minChildren)
+				{
+					minChildren = searchNode.Children;
+					minNode = searchNode;
+				}
+				searchNode = searchNode.East;
 			}
 
-			header = findColumnWithLeastChildren(root, true);
-
-			if (header.Children != 8)
-				throw new Exception($"With one column covered, the minimum number of children should be 8, for header {header.Label} it was {header.Children}");
-			// test that covering a column works 
-			// test that backtracking works 
-
-			header = root.East;
-
-			coverAllColumnsInRow(header.South);
-		}
-		#endregion
-
-	}
-
-	#region Solution Set
-	public class SolutionSet : IEnumerable<Node>
-	{
-		LinkedList<Node> rowStack = new LinkedList<Node>();
-
-		public void Push(Node candidate)
-		{
-			rowStack.AddLast(candidate);
+			return minNode;
 		}
 
-		public Node Pop()
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="solution"></param>
+		private void printSolution()
+		{ 
+			for (int i = 0; i < solutionSet.Length; i++)
+            {
+				if (solutionSet[i] != null)
+                {
+					Node printNode = solutionSet[i];
+					int[] valueInSpace = new int[3];
+					valueInSpace = setValueFromSolution(printNode.Header.Label, valueInSpace);
+
+					do
+					{
+						printNode = printNode.East;
+						valueInSpace = setValueFromSolution(printNode.Header.Label, valueInSpace);
+					} while (printNode != solutionSet[i]);
+
+					solvedSudoku[valueInSpace[0] - 1, valueInSpace[1] - 1] = valueInSpace[2];
+                }
+            }
+
+			for (int i = 0; i < 9; i++)
+            {
+				for (int j = 0; j < 9; j++)
+                {
+					Console.Write($"{solvedSudoku[i, j]} ");
+                }
+				Console.WriteLine();
+            }
+
+			Console.WriteLine("Solution has been printed");
+		}
+
+		// Crude method for extracting values from the header labels 
+		// TODO: make this better, perhaps make the header labels more robust, something other than just strings
+		private int[] setValueFromSolution(string headerLabel, int[] valueInSpace)
         {
-			if (rowStack.Count == 0)
+			char[] integers = "123456789".ToCharArray();
+			int indexOfX;
+			int indexOfY;
+			int indexOfVal;
+
+			if (headerLabel.Contains("SquareContainsValue"))
 			{
-				throw new Exception("Attempted to pop from empty stack");
+				indexOfY = headerLabel.IndexOfAny(integers);
+				indexOfX = headerLabel.IndexOfAny(integers, indexOfY + 1);
+				valueInSpace[0] = (int)char.GetNumericValue(headerLabel[indexOfY]);
+				valueInSpace[1] = (int)char.GetNumericValue(headerLabel[indexOfX]);
+			} 
+			else if (headerLabel.Contains("RowContainsNumber"))
+            {
+				indexOfY = headerLabel.IndexOfAny(integers);
+				indexOfVal = headerLabel.IndexOfAny(integers, indexOfY + 1);
+				valueInSpace[0] = (int)char.GetNumericValue(headerLabel[indexOfY]);
+				valueInSpace[2] = (int)char.GetNumericValue(headerLabel[indexOfVal]);
 			}
-			Node returnNode = rowStack.Last.Value;
-			rowStack.RemoveLast();
-			return returnNode;
+
+			return valueInSpace;
         }
-
-		public void PrintSolutionSet()
-		{
-			for (LinkedListNode<Node> node = rowStack.First; node != null; node = node.Next)
-			{
-				Console.WriteLine(node.Value.Label);
-			}
-		}
-
-		public IEnumerator<Node> GetEnumerator()
-		{
-			return rowStack.GetEnumerator();
-		}
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return rowStack.GetEnumerator();
-		}
 	}
-    #endregion
 }
