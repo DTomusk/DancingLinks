@@ -4,24 +4,35 @@ namespace DancingLinks
 {
 	public class SudokuGenerator
 	{
-		// Currently not used fully as FindBlockFromCoordinates behaves independently of SUDOKU_DIMENSION
-		const int SUDOKU_DIMENSION = 9;
+		// Used to verify the structure of the matrix
 		const int EXPECTED_NUMBER_OF_CONSTRAINTS = 324;
 		const int EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER = 9;
 		const int EXPECTED_NUMBER_OF_NODES_PER_ROW = 4;
 
 		Node root;
 
-		public Node GenerateSudokuConstraints(bool testing)
+		/// <summary>
+		/// Entry point to the generator 
+		/// Adds all nodes to the matrix in a deterministic way 
+		/// Runs tests on the structure of the matrix if testing enabled
+		/// </summary>
+		public Node GenerateSudokuConstraints(bool testing, bool verbose)
 		{
+			if (verbose)
+				Console.WriteLine("Initialising matrix of constraints...");
+
 			root = createRoot();
 			addColumns();
 			addPossibleMoves();
 			if (testing)
 			{
 				verifyNodeStructure();
-				Console.WriteLine("All tests passed, data structure has been verified");
+				Console.WriteLine("All tests passed, data structure has been verified.\n");
 			}
+
+			if (verbose)
+				Console.WriteLine("Matrix has been initialised.\n");
+
 			return root;
 		}
 
@@ -46,7 +57,7 @@ namespace DancingLinks
 		{
 			Node currentNode = root;
 
-			currentNode = addSetOfConstraints(currentNode, ConstraintType.Box);
+			currentNode = addSetOfConstraints(currentNode, ConstraintType.Cell);
 			currentNode = addSetOfConstraints(currentNode, ConstraintType.Row);
 			currentNode = addSetOfConstraints(currentNode, ConstraintType.Column);
 			currentNode = addSetOfConstraints(currentNode, ConstraintType.Block);
@@ -60,9 +71,9 @@ namespace DancingLinks
 		/// </summary>
 		private Node addSetOfConstraints(Node currentNode, ConstraintType constraint)
 		{
-			for (int i = 1; i <= SUDOKU_DIMENSION; i++)
+			for (int i = 1; i <= 9; i++)
 			{
-				for (int j = 1; j <= SUDOKU_DIMENSION; j++)
+				for (int j = 1; j <= 9; j++)
 				{
 					currentNode.East = new Node(getColumnLabel(i, j, constraint))
 					{
@@ -84,19 +95,18 @@ namespace DancingLinks
 			Node headerNode;
 			Node currentNode;
 			// Iterate over the numbers that can be put in a square
-			for (int val = 1; val <= SUDOKU_DIMENSION; val++)
+			for (int val = 1; val <= 9; val++)
 			{
 				// Iterate over the rows 
-				for (int row = 1; row <= SUDOKU_DIMENSION; row++)
+				for (int row = 1; row <= 9; row++)
 				{
 					// Iterate over the columns
-					for (int col= 1; col <= SUDOKU_DIMENSION; col++)
+					for (int col= 1; col <= 9; col++)
 					{
 						// Each move fulfils four contraints
 						Node firstNode = new Node(new Label(row, col, FindBlockFromCoordinates(row, col), val, 0));
-						headerNode = root.East;
 
-						currentNode = appendChildNode(firstNode, ConstraintType.Box, row, col);
+						currentNode = appendChildNode(firstNode, ConstraintType.Cell, row, col);
 						currentNode = appendChildNode(currentNode, ConstraintType.Row, row, val);
 						currentNode = appendChildNode(currentNode, ConstraintType.Column, col, val);
 						currentNode = appendChildNode(currentNode, ConstraintType.Block, FindBlockFromCoordinates(row, col), val);
@@ -165,7 +175,7 @@ namespace DancingLinks
         {
 			switch (constraint)
 			{
-				case ConstraintType.Box:
+				case ConstraintType.Cell:
 					{
 						return new Label(i, j, 0, 0, constraint);
 					}

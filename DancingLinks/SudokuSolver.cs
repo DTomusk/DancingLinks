@@ -16,22 +16,26 @@ namespace DancingLinks
 			sudokuState = new int[9, 9];
 			root = matrixRoot;
 
-			Console.WriteLine("Initial state of sudoku: ");
+			addUserMoves();
+
+			Console.WriteLine("Initial state of sudoku: \n");
 
 			printSudokuState();
 
-			Console.WriteLine("Searching for sudoku solution...");
+			Console.WriteLine("Searching for sudoku solution...\n");
 
 			timer.Start();
 
 			findNextSolutionNode(0);
 		}
 
-		/// <summary>
-		/// Recursive function that finds the kth row in the solution set 
-		/// </summary>
-		private void findNextSolutionNode(int k)
+        #region Algorithm DLX
+        /// <summary>
+        /// Recursive function that finds the kth row in the solution set 
+        /// </summary>
+        private void findNextSolutionNode(int k)
 		{
+			Console.WriteLine($"Attempting to find the {k} value in the solution set");
 			// If there are no more columns left in the matrix, then a solution has been found
 			if (root.East == root)
             {
@@ -154,31 +158,121 @@ namespace DancingLinks
 
 			return minNode;
 		}
+		#endregion
+
+		#region UI
 
 		/// <summary>
-		/// Populates solvedSudoku with values from the labels of the nodes in the solutionSet and prints them
+		/// Allows users to fill in the initial state of the sudoku
 		/// </summary>
-		/// <param name="solution"></param>
-		private void printSudokuState()
-		{ 
-			for (int i = 0; i < solutionSet.Length; i++)
-            {
-				if (solutionSet[i] != null)
-                {
-					Node printNode = solutionSet[i];
+		private void addUserMoves()
+        {
+			bool done = false;
 
-					sudokuState[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
+			while (!done)
+			{
+				Console.WriteLine("Input a move as three digits or type 'd' when done");
+				string input = Console.ReadLine();
+				if (input == "d")
+					done = true;
+				else
+                {
+					// Expect a very specific format, currently no protection against invalid inputs 
+					int[] userMove = Array.ConvertAll(input.ToCharArray(), i => (int)char.GetNumericValue(i));
+
+					// TODO: given the user move, we need to find the nodes that correspond to that move and cover 
+					// all their columns 
+
+					Console.WriteLine($"Insert value: {userMove[0]} at ({userMove[1]}, {userMove[2]})");
+
+					Node moveNode = findNodeCorrespondingToMove(userMove);
+
+					Console.WriteLine($"Found node corresponding to move {moveNode.Label}");
+
+					sudokuState[userMove[1] - 1, userMove[2] - 1] = userMove[0];
+
+					printSudokuState();
+
+					Node coverNode = moveNode;
+
+					do
+					{
+						coverColumn(coverNode.Header);
+						coverNode = coverNode.East;
+					} while (coverNode != moveNode);
                 }
+			}
+        }
+
+		private Node findNodeCorrespondingToMove(int[] move)
+        {
+			Node headerNode = root;
+			Label headerLabel = new Label(move[1], move[2], 0, 0, ConstraintType.Cell);
+
+			while (!headerNode.Label.Equals(headerLabel))
+            {
+				headerNode = headerNode.East;
+				if (headerNode == root)
+					throw new Exception("No header found corresponding to move");
             }
+
+			Node searchNode = headerNode.South;
+			
+			while (searchNode.Label.Value != move[0])
+            {
+				searchNode = searchNode.South;
+				if (searchNode == headerNode)
+					throw new Exception("No node found corresponding to move");
+            }
+
+			return searchNode;
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Populates solvedSudoku with values from the labels of the nodes in the solutionSet and prints them
+        /// </summary>
+        /// <param name="solution"></param>
+        private void printSudokuState()
+		{
+			setSudokuStateFromNodes();
+
+			Console.WriteLine("-------------------------");
 
 			for (int i = 0; i < 9; i++)
             {
 				for (int j = 0; j < 9; j++)
                 {
+					if (j == 0)
+						Console.Write("| ");
 					Console.Write($"{sudokuState[i, j]} ");
+					if (j % 3 == 2)
+						Console.Write("| ");
                 }
 				Console.WriteLine();
+
+				if (i % 3 == 2)
+					Console.WriteLine("-------------------------");
             }
+
+			Console.WriteLine();
+		}
+
+		/// <summary>
+		/// Translates node labels from the solution set to values in the sudoku state 
+		/// </summary>
+		private void setSudokuStateFromNodes()
+        {
+			for (int i = 0; i < solutionSet.Length; i++)
+			{
+				if (solutionSet[i] != null)
+				{
+					Node printNode = solutionSet[i];
+
+					sudokuState[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
+				}
+			}
 		}
 	}
 }
