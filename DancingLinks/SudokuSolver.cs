@@ -7,18 +7,20 @@ namespace DancingLinks
 	{
 		private Node root;
 		private Node[] solutionSet;
-		private int[,] solvedSudoku;
+		private int[,] sudokuState;
 		private readonly Stopwatch timer = new Stopwatch();
-		private bool solved;
 
 		public void SolveSudoku(Node matrixRoot)
 		{
 			solutionSet = new Node[81];
-			solvedSudoku = new int[9, 9];
+			sudokuState = new int[9, 9];
 			root = matrixRoot;
-			solved = false;
 
-			Console.WriteLine("Searching for sudoku solution");
+			Console.WriteLine("Initial state of sudoku: ");
+
+			printSudokuState();
+
+			Console.WriteLine("Searching for sudoku solution...");
 
 			timer.Start();
 
@@ -28,13 +30,12 @@ namespace DancingLinks
 		/// <summary>
 		/// Recursive function that finds the kth row in the solution set 
 		/// </summary>
-		/// <param name="k"></param>
 		private void findNextSolutionNode(int k)
 		{
 			// If there are no more columns left in the matrix, then a solution has been found
 			if (root.East == root)
             {
-				printSolution();
+				printSudokuState();
 
 				timer.Stop();
 
@@ -155,10 +156,10 @@ namespace DancingLinks
 		}
 
 		/// <summary>
-		/// Populates solvedSudoku with values based on the labels of the nodes in the solutionSet and then prints them
+		/// Populates solvedSudoku with values from the labels of the nodes in the solutionSet and prints them
 		/// </summary>
 		/// <param name="solution"></param>
-		private void printSolution()
+		private void printSudokuState()
 		{ 
 			for (int i = 0; i < solutionSet.Length; i++)
             {
@@ -166,7 +167,7 @@ namespace DancingLinks
                 {
 					Node printNode = solutionSet[i];
 
-					solvedSudoku[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
+					sudokuState[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
                 }
             }
 
@@ -174,12 +175,10 @@ namespace DancingLinks
             {
 				for (int j = 0; j < 9; j++)
                 {
-					Console.Write($"{solvedSudoku[i, j]} ");
+					Console.Write($"{sudokuState[i, j]} ");
                 }
 				Console.WriteLine();
             }
-
-			Console.WriteLine("Solution has been printed");
 		}
 	}
 }
