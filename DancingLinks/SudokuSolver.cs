@@ -60,6 +60,11 @@ namespace DancingLinks
 					nodeInRow = nodeInRow.East;
                 }
 				findNextSolutionNode(k + 1);
+
+				// Once the solution has been found we can simply exit the loop
+				if (root.East == root)
+					return;
+
 				currentNode = solutionSet[k];
 				header = currentNode.Header;
 				
