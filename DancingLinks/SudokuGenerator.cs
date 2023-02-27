@@ -4,73 +4,82 @@ namespace DancingLinks
 {
 	public class SudokuGenerator
 	{
-		const string SQUARE_HAS_VALUE = "SquareContainsValue";
-		const string ROW_CONTAINS_NUMBER = "RowContainsNumber";
-		const string COLUMN_CONTAINS_NUMBER = "ColumnContainsNumber";
-		const string BLOCK_CONTAINS_NUMBER = "BlockContainsNumber";
 		// Currently not used fully as FindBlockFromCoordinates behaves independently of SUDOKU_DIMENSION
 		const int SUDOKU_DIMENSION = 9;
-		const bool TESTING_ENABLED = true;
 		const int EXPECTED_NUMBER_OF_CONSTRAINTS = 324;
-		// Currently not used, hard to verify whether there are 729 distinct rows in the data structure 
-		const int EXPECTED_NUMBER_OF_CHOICES = 729;
 		const int EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER = 9;
 		const int EXPECTED_NUMBER_OF_NODES_PER_ROW = 4;
 
-		public Node GenerateSudokuConstraints()
+		Node root;
+
+		public Node GenerateSudokuConstraints(bool testing)
 		{
-			Node root = createRoot();
-			addColumns(root);
-			addPossibleMoves(root);
-			if (TESTING_ENABLED)
+			root = createRoot();
+			addColumns();
+			addPossibleMoves();
+			if (testing)
 			{
-				verifyNodeStructure(root);
+				verifyNodeStructure();
 				Console.WriteLine("All tests passed, data structure has been verified");
 			}
 			return root;
 		}
 
 		#region Populating Data Structure
+		/// <summary>
+		/// Creates the root of the matrix which serves as a universal starting point for traversing the matrix
+		/// </summary>
 		private Node createRoot()
 		{
-			Node root = new Node("root");
+			Node root = new Node();
 			root.North = root;
 			root.South = root;
 
 			return root;
 		}
 		
-		private void addColumns(Node root)
+		/// <summary>
+		/// Adds all the columns (constraints) to the matrix 
+		/// Each of the four types of constraint is added separately
+		/// </summary>
+		private void addColumns()
 		{
 			Node currentNode = root;
 
-			currentNode = addSetOfConstraints(currentNode, SQUARE_HAS_VALUE);
-			currentNode = addSetOfConstraints(currentNode, ROW_CONTAINS_NUMBER);
-			currentNode = addSetOfConstraints(currentNode, COLUMN_CONTAINS_NUMBER);
-			currentNode = addSetOfConstraints(currentNode, BLOCK_CONTAINS_NUMBER);
+			currentNode = addSetOfConstraints(currentNode, ConstraintType.Box);
+			currentNode = addSetOfConstraints(currentNode, ConstraintType.Row);
+			currentNode = addSetOfConstraints(currentNode, ConstraintType.Column);
+			currentNode = addSetOfConstraints(currentNode, ConstraintType.Block);
 
 			currentNode.East = root;
 			root.West = currentNode;
 		}
 
-		private Node addSetOfConstraints(Node currentNode, string label)
+		/// <summary>
+		/// Adds 81 constraint columns to the matrix corresponding to the type of constraint specified by constraint
+		/// </summary>
+		private Node addSetOfConstraints(Node currentNode, ConstraintType constraint)
 		{
 			for (int i = 1; i <= SUDOKU_DIMENSION; i++)
 			{
 				for (int j = 1; j <= SUDOKU_DIMENSION; j++)
 				{
-					currentNode.East = new Node(label + $" ({i}, {j})")
+					currentNode.East = new Node(getColumnLabel(i, j, constraint))
 					{
 						West = currentNode
 					};
 					currentNode = currentNode.East;
+					currentNode.Header = currentNode;
 				}
 			}
 
 			return currentNode;
 		}
 
-		private void addPossibleMoves(Node root)
+		/// <summary>
+		/// Adds all 729 possible sudoku moves to their respective colummns in the matrix 
+		/// </summary>
+		private void addPossibleMoves()
 		{
 			Node headerNode;
 			Node currentNode;
@@ -78,19 +87,19 @@ namespace DancingLinks
 			for (int val = 1; val <= SUDOKU_DIMENSION; val++)
 			{
 				// Iterate over the rows 
-				for (int i = 1; i <= SUDOKU_DIMENSION; i++)
+				for (int row = 1; row <= SUDOKU_DIMENSION; row++)
 				{
 					// Iterate over the columns
-					for (int j = 1; j <= SUDOKU_DIMENSION; j++)
+					for (int col= 1; col <= SUDOKU_DIMENSION; col++)
 					{
-						Node firstNode = new Node($"Value: {val} at ({i}, {j})");
-						currentNode = firstNode;
+						// Each move fulfils four contraints
+						Node firstNode = new Node(new Label(row, col, FindBlockFromCoordinates(row, col), val, 0));
 						headerNode = root.East;
 
-						currentNode = appendChildNode(headerNode, currentNode, SQUARE_HAS_VALUE, i, j);
-						currentNode = appendChildNode(headerNode, currentNode, ROW_CONTAINS_NUMBER, i, val);
-						currentNode = appendChildNode(headerNode, currentNode, COLUMN_CONTAINS_NUMBER, j, val);
-						currentNode = appendChildNode(headerNode, currentNode, BLOCK_CONTAINS_NUMBER, FindBlockFromCoordinates(i, j), val);
+						currentNode = appendChildNode(firstNode, ConstraintType.Box, row, col);
+						currentNode = appendChildNode(currentNode, ConstraintType.Row, row, val);
+						currentNode = appendChildNode(currentNode, ConstraintType.Column, col, val);
+						currentNode = appendChildNode(currentNode, ConstraintType.Block, FindBlockFromCoordinates(row, col), val);
 						currentNode.West.East = firstNode;
 						firstNode.West = currentNode.West;
 					}
@@ -113,13 +122,20 @@ namespace DancingLinks
 			}
 		}
 
-		// Appends appendNode to the southmost offspring of headerNode and returns a node that will be appended to the next constraint
-		private Node appendChildNode(Node headerNode, Node appendNode, string searchString, int i, int j)
+		/// <summary>
+		/// Using the label parameters provided, find the column for appendNode to be added to and add it to the bottom
+		/// Return the next node to be appended 
+		/// </summary>
+		private Node appendChildNode(Node appendNode, ConstraintType constraintType, int i, int j)
 		{
-			while (headerNode.Label != $"{searchString} ({i}, {j})")
+			// Find the column corresponding to the 
+			Node headerNode = root.East;
+			Label searchLabel = getColumnLabel(i, j, constraintType);
+
+			while (!headerNode.Label.Equals(searchLabel))
 			{
 				headerNode = headerNode.East;
-				if (headerNode.Label == "root")
+				if (headerNode == root)
 					throw new Exception($"Header corresponding to ({i}, {j}) not found");
 			}
 
@@ -135,17 +151,46 @@ namespace DancingLinks
 
 			appendNode.East = new Node(appendNode.Label);
 			appendNode.East.West = appendNode;
+			appendNode.Header = headerNode;
 
 			headerNode.Children += 1;
 
 			return appendNode.East;
+		}
+
+		/// <summary>
+		/// Given the integers and constraint type provided, generate the appropriate label for a column header 
+		/// </summary>
+		public Label getColumnLabel(int i, int j, ConstraintType constraint)
+        {
+			switch (constraint)
+			{
+				case ConstraintType.Box:
+					{
+						return new Label(i, j, 0, 0, constraint);
+					}
+				case ConstraintType.Row:
+					{
+						return new Label(i, 0, 0, j, constraint);
+					}
+				case ConstraintType.Column:
+					{
+						return new Label(0, i, 0, j, constraint);
+					}
+				case ConstraintType.Block:
+					{
+						return new Label(i, j, FindBlockFromCoordinates(i, j), 0, constraint);
+					}
+				default:
+					return new Label();
+			}
 		}
 		#endregion
 
 		#region Testing
 
 		// A series of tests to verify that the data structure is as expected
-		private void verifyNodeStructure(Node root)
+		private void verifyNodeStructure()
 		{
 			Console.WriteLine("Runing Data Structure Tests");
 			Console.WriteLine("Testing East-West header connections");
@@ -157,7 +202,7 @@ namespace DancingLinks
 			Node currentNode = root.East;
 			int numberOfHeaders = 0;
 
-			while (currentNode.Label != "root")
+			while (currentNode != root)
 			{
 				// Test that each header has an east node
 				if (currentNode.East == null)
@@ -170,7 +215,7 @@ namespace DancingLinks
 					throw new Exception($"The west of {currentNode.Label}'s east ({currentNode.East.Label} was {currentNode.East.West.Label})");
 				if (currentNode.Children != EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER)
 					throw new Exception($"Header with label {currentNode.Label} has {currentNode.Children} children rather than the expected {EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER}");
-				// To do: run tests on the header's children 
+
 				runTestsOnHeaderChildren(currentNode);
 
 				currentNode = currentNode.East;
@@ -203,6 +248,9 @@ namespace DancingLinks
 
 				currentNode = currentNode.South;
 				numberOfOffspring += 1;
+
+				if (currentNode.Header != header)
+					throw new Exception($"Header of node with label {currentNode.Label} was not the expected {header.Label}, it was {currentNode.Header.Label}");
 			}
 
 			if (numberOfOffspring != EXPECTED_NUMBER_OF_CHILDREN_PER_HEADER)

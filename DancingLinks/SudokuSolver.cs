@@ -1,56 +1,184 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace DancingLinks
 {
 	public class SudokuSolver
 	{
-		public void SolveSudoku(Node root)
+		private Node root;
+		private Node[] solutionSet;
+		private int[,] sudokuState;
+		private readonly Stopwatch timer = new Stopwatch();
+
+		public void SolveSudoku(Node matrixRoot)
 		{
-			// Run the algorithm here 
-			// Choose a column with > 0 children
-			// Choose a row in that column 
-			// Add that row to the solution set 
-			// Cover the column and all the columns associated with elements in the row 
+			solutionSet = new Node[81];
+			sudokuState = new int[9, 9];
+			root = matrixRoot;
 
-			Node searchNode = root.East;
-			int minChildren = searchNode.Children;
+			Console.WriteLine("Initial state of sudoku: ");
 
-			// Find the column with the lowest number of members
-			while (searchNode != root)
-			{
-				if (searchNode.Children < minChildren)
-					minChildren = searchNode.Children;
-				searchNode = searchNode.East;
-			}
+			printSudokuState();
 
-			searchNode = root.East;
+			Console.WriteLine("Searching for sudoku solution...");
 
-			while (searchNode.Children != minChildren)
-				searchNode = searchNode.East;
+			timer.Start();
 
-			// Choose row in search Node to be added to the solution set 
+			findNextSolutionNode(0);
 		}
 
-		// Remove the header from the header row 
-		// For all the children, take all their siblings and connect their parents to their children 
-		private void CoverColumn(Node header)
+		/// <summary>
+		/// Recursive function that finds the kth row in the solution set 
+		/// </summary>
+		private void findNextSolutionNode(int k)
+		{
+			// If there are no more columns left in the matrix, then a solution has been found
+			if (root.East == root)
+            {
+				printSudokuState();
+
+				timer.Stop();
+
+				Console.WriteLine($"Time taken to solve sudoku: {timer.ElapsedMilliseconds} ms");
+				return;
+            }
+			
+			// Covering the column with the least children reduces the branching factor of the algorithm
+			Node header = findColumnWithLeastChildren();
+			coverColumn(header);
+
+			Node currentNode = header.South;
+
+			// Loop over all offspring of the column header
+			while (currentNode != header)
+            {
+				// Assume the chosen node is in the solution
+				solutionSet[k] = currentNode;
+				Node nodeInRow = currentNode.East;
+				while (nodeInRow != currentNode)
+                {
+					coverColumn(nodeInRow.Header);
+					nodeInRow = nodeInRow.East;
+                }
+				findNextSolutionNode(k + 1);
+
+				// Once the solution has been found we can simply exit the loop
+				if (root.East == root)
+					return;
+
+				currentNode = solutionSet[k];
+				header = currentNode.Header;
+				
+				nodeInRow = currentNode.West;
+				while (nodeInRow != currentNode)
+                {
+					uncoverColumn(nodeInRow.Header);
+					nodeInRow = nodeInRow.West;
+                }
+            }
+
+			// If all of the nodes in the column have been iterated over and a solution hasn't been found
+			// Then uncover the column and keep searching 
+			uncoverColumn(header);
+			return;
+		}
+
+		/// <summary>
+		/// Disconnects the given header from the matrix by connecting its east and west nodes to each other
+		/// For any nodes in the column, all of their sibling nodes are disconnected from their columns
+		/// This effectively removes all the populated rows in the column from the matrix 
+		/// </summary>
+		private void coverColumn(Node header)
 		{
 			header.West.East = header.East;
 			header.East.West = header.West;
 
-			Node childNode = header.South.East;
+			Node currentChild = header.South;
 
-			// need to update header children counts as well 
-			while (childNode != header.South)
+			// for each child of the header 
+			while (currentChild != header)
 			{
-				childNode.North.South = childNode.South;
-				childNode.South.North = childNode.North;
-				childNode = childNode.East;
+				// remove all of the siblings 
+				Node currentSibling = currentChild.East;
+				while (currentSibling != currentChild)
+				{
+					currentSibling.North.South = currentSibling.South;
+					currentSibling.South.North = currentSibling.North;
+					currentSibling.Header.Children--;
+					currentSibling = currentSibling.East;
+				}
+				currentChild = currentChild.South;
+			} 
+		}
+
+		/// <summary>
+		/// The reverse of the coverColumn method 
+		/// Working in reverse order to coverColumn (north and west rather than south and east),
+		/// this connects a column and all of the associated rows to their original place in the matrix
+		/// </summary>
+		private void uncoverColumn(Node header)
+		{
+			Node currentNode = header.North;
+			while (currentNode != header)
+            {
+				Node currentSibling = currentNode.West;
+				while (currentSibling != currentNode)
+                {
+					currentSibling.Header.Children++;
+					currentSibling.South.North = currentSibling;
+					currentSibling.North.South = currentSibling;
+					currentSibling = currentSibling.West;
+                }
+				currentNode = currentNode.North;
+            }
+			header.East.West = header;
+			header.West.East = header;
+		}
+
+		private Node findColumnWithLeastChildren()
+		{
+			Node searchNode = root.East;
+			Node minNode = searchNode;
+			int minChildren = searchNode.Children;
+
+			// Find the column with the lowest number of offspring
+			while (searchNode != root)
+			{
+				if (searchNode.Children < minChildren)
+				{
+					minChildren = searchNode.Children;
+					minNode = searchNode;
+				}
+				searchNode = searchNode.East;
 			}
+
+			return minNode;
+		}
+
+		/// <summary>
+		/// Populates solvedSudoku with values from the labels of the nodes in the solutionSet and prints them
+		/// </summary>
+		/// <param name="solution"></param>
+		private void printSudokuState()
+		{ 
+			for (int i = 0; i < solutionSet.Length; i++)
+            {
+				if (solutionSet[i] != null)
+                {
+					Node printNode = solutionSet[i];
+
+					sudokuState[printNode.Label.Row - 1, printNode.Label.Column - 1] = printNode.Label.Value;
+                }
+            }
+
+			for (int i = 0; i < 9; i++)
+            {
+				for (int j = 0; j < 9; j++)
+                {
+					Console.Write($"{sudokuState[i, j]} ");
+                }
+				Console.WriteLine();
+            }
 		}
 	}
 }
