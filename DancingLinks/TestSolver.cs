@@ -6,6 +6,7 @@ namespace DancingLinks
     /// This class contains a toy matrix similar to the full sudoku matrix
     /// It is small enough that the exact state is easy to keep track of 
     /// But large enough to be able to test all the matrix operations in SudokuSolver
+    /// It tests the coverColumn and uncoverColumn functions, as doing a full run of the algorithm on the smaller matrix
     /// </summary>
     public class TestSolver : SudokuSolver
     {
@@ -13,9 +14,15 @@ namespace DancingLinks
         {
             // Arrange: generic test arrangement
             TestNode testRoot = TestMatrix.setupTestMatrix();
+            root = testRoot;
+            solutionSet = new Node[2];
+
             Node columnToUncover = testCoverColumn(testRoot);
             testUncoverColumn((TestNode)columnToUncover);
+            testAlgorithm();
         }
+
+        #region Unit Tests
 
         /// <summary>
         /// Test the coverColumn function to ensure that the state of the matrix is as expected after function call
@@ -109,8 +116,32 @@ namespace DancingLinks
 
             Console.WriteLine("Uncover column tests succeeded");
         }
+
+        private void testAlgorithm()
+        {
+            findNextSolutionNode(0);
+
+            TestNode firstSolutionRow = (TestNode)solutionSet[0];
+            TestNode secondSolutionRow = (TestNode)solutionSet[1];
+
+            if (firstSolutionRow.TestLabel != "Node1Column4")
+                throw new Exception($"Unexpected first row in solution set, was {firstSolutionRow.TestLabel}");
+
+            if (secondSolutionRow.TestLabel != "Node2Column5")
+                throw new Exception($"Unexpected second row in solution set, was {secondSolutionRow.TestLabel}");
+
+            Console.WriteLine("Algorithm successfully run on toy matrix");
+        }
+
+        protected override void printSudokuState()
+        {
+            Console.WriteLine("printSudokuState called");
+        }
+
+        #endregion
     }
 
+    #region Create Test Matrix
     /// <summary>
     /// The TestMatrix is a simpler version of the matrix produced by SudokuGenerator 
     /// As a matrix of 1s and 0s, the nodes appear as: 
@@ -186,6 +217,7 @@ namespace DancingLinks
         }
     }
 
+    // Needed to add a string type label for simpler test assertions 
     public class TestNode: Node
     {
         public string TestLabel { get; set; }
@@ -195,4 +227,6 @@ namespace DancingLinks
             TestLabel = label;
         }
     }
+
+    #endregion
 }

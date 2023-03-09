@@ -5,8 +5,8 @@ namespace DancingLinks
 {
 	public class SudokuSolver
 	{
-		private Node root;
-		private Node[] solutionSet;
+		protected Node root;
+		protected Node[] solutionSet;
 		private int[,] sudokuState;
 		private readonly Stopwatch timer = new Stopwatch();
 
@@ -237,7 +237,7 @@ namespace DancingLinks
         /// Populates solvedSudoku with values from the labels of the nodes in the solutionSet and prints them
         /// </summary>
         /// <param name="solution"></param>
-        private void printSudokuState()
+        protected virtual void printSudokuState()
 		{
 			setSudokuStateFromNodes();
 
@@ -265,7 +265,7 @@ namespace DancingLinks
 		/// <summary>
 		/// Translates node labels from the solution set to values in the sudoku state 
 		/// </summary>
-		private void setSudokuStateFromNodes()
+		protected void setSudokuStateFromNodes()
         {
 			for (int i = 0; i < solutionSet.Length; i++)
 			{
