@@ -9,10 +9,13 @@ namespace DancingLinks
 
 		static void Main(string[] args)
 		{
-			SudokuGenerator generator = new SudokuGenerator();
-			Node root = generator.GenerateSudokuConstraints(TESTING, VERBOSE);
-			SudokuSolver solver = new SudokuSolver();
-			solver.SolveSudoku(root);
+			//SudokuGenerator generator = new SudokuGenerator();
+			//Node root = generator.GenerateSudokuConstraints(TESTING, VERBOSE);
+			//SudokuSolver solver = new SudokuSolver();
+			//solver.SolveSudoku(root);
+
+			TestSolver testSolver = new TestSolver();
+			testSolver.RunTests();
 
 			Console.ReadLine();
 		}

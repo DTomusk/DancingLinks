@@ -33,9 +33,8 @@ namespace DancingLinks
         /// <summary>
         /// Recursive function that finds the kth row in the solution set 
         /// </summary>
-        private void findNextSolutionNode(int k)
+        protected void findNextSolutionNode(int k)
 		{
-			Console.WriteLine($"Attempting to find the {k} value in the solution set");
 			// If there are no more columns left in the matrix, then a solution has been found
 			if (root.East == root)
             {
@@ -49,6 +48,10 @@ namespace DancingLinks
 			
 			// Covering the column with the least children reduces the branching factor of the algorithm
 			Node header = findColumnWithLeastChildren();
+
+			if (header.Children <= 0)
+				throw new Exception("Given sudoku is invalid");
+
 			coverColumn(header);
 
 			Node currentNode = header.South;
@@ -92,7 +95,7 @@ namespace DancingLinks
 		/// For any nodes in the column, all of their sibling nodes are disconnected from their columns
 		/// This effectively removes all the populated rows in the column from the matrix 
 		/// </summary>
-		private void coverColumn(Node header)
+		protected void coverColumn(Node header)
 		{
 			header.West.East = header.East;
 			header.East.West = header.West;
@@ -120,7 +123,7 @@ namespace DancingLinks
 		/// Working in reverse order to coverColumn (north and west rather than south and east),
 		/// this connects a column and all of the associated rows to their original place in the matrix
 		/// </summary>
-		private void uncoverColumn(Node header)
+		protected void uncoverColumn(Node header)
 		{
 			Node currentNode = header.North;
 			while (currentNode != header)
@@ -139,7 +142,7 @@ namespace DancingLinks
 			header.West.East = header;
 		}
 
-		private Node findColumnWithLeastChildren()
+		protected Node findColumnWithLeastChildren()
 		{
 			Node searchNode = root.East;
 			Node minNode = searchNode;

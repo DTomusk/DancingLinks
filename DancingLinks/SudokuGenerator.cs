@@ -171,7 +171,7 @@ namespace DancingLinks
 		/// <summary>
 		/// Given the integers and constraint type provided, generate the appropriate label for a column header 
 		/// </summary>
-		public Label getColumnLabel(int i, int j, ConstraintType constraint)
+		private Label getColumnLabel(int i, int j, ConstraintType constraint)
         {
 			switch (constraint)
 			{
